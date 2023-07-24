@@ -3,6 +3,14 @@
 set -o nounset
 set -o errexit
 
+for i in $*; do
+  if [[ $i == -* ]]; then
+    echo "rpi-update does not accept command line dash parameters."
+    echo "See: https://github.com/raspberrypi/rpi-update/blob/master/README.md"
+    exit 1
+  fi
+done
+
 REPO_URI=${REPO_URI:-"https://github.com/raspberrypi/rpi-firmware"}
 REPO_API_URI=${REPO_URI/github.com/api.github.com\/repos}
 REPO_CONTENT_URI=${REPO_URI/github.com/raw.githubusercontent.com}
