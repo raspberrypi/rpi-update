@@ -48,7 +48,11 @@ if [[ "${FW_SUBDIR}" != "" ]]; then
 		FW_SUBDIR=${FW_SUBDIR: : -1}
 	fi
 fi
-BOOT_PATH=${BOOT_PATH:-"/boot"}
+if mountpoint -q /boot/firmware ; then
+        BOOT_PATH=${BOOT_PATH:-"/boot/firmware"}
+else
+        BOOT_PATH=${BOOT_PATH:-"/boot"}
+fi
 WORK_PATH=${WORK_PATH:-"${ROOT_PATH}/root"}
 SKIP_KERNEL=${SKIP_KERNEL:-0}
 SKIP_FIRMWARE=${SKIP_FIRMWARE:-0}
