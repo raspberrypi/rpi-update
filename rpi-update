@@ -399,6 +399,7 @@ function update_firmware {
 		fi
 		if [[ ${WANT_64BIT} -eq 1 ]]; then
 			[[ -e "${FW_REPOLOCAL}/"kernel8.img ]] && cp "${FW_REPOLOCAL}/"kernel8.img "${FW_PATH}/"
+			[[ -e "${FW_REPOLOCAL}/"kernel_2712.img ]] && cp "${FW_REPOLOCAL}/"kernel_2712.img "${FW_PATH}/"
 		fi
 		if [[ -n $(shopt -s nullglob; echo "${FW_REPOLOCAL}/"*.dtb*) ]]; then
 			cp "${FW_REPOLOCAL}/"*.dtb* "${FW_PATH}/"
