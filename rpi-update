@@ -54,7 +54,7 @@ else
         BOOT_PATH=${BOOT_PATH:-"/boot"}
 fi
 WORK_PATH=${WORK_PATH:-"${ROOT_PATH}/root"}
-SKIP_KERNEL=${SKIP_KERNEL:-0}
+SKIP_KERNEL=${SKIP_KERNEL:-}
 SKIP_FIRMWARE=${SKIP_FIRMWARE:-0}
 SKIP_SDK=${SKIP_SDK:-0}
 SKIP_VCLIBS=${SKIP_VCLIBS:-0}
@@ -82,8 +82,16 @@ SELFUPDATE_SCRIPT="${WORK_PATH}/.updateScript.sh"
 
 [ "${RPI_UPDATE_UNSUPPORTED}" -ne 0 ] && echo -e "You appear to be trying to update firmware on an incompatible distribution. To force update, run the following:\nsudo -E RPI_UPDATE_UNSUPPORTED=0 rpi-update" && exit 1
 
-if command -v vcgencmd > /dev/null; then
-	vcgencmd get_config str | grep -qE "^kernel=" && echo -e "You appear to be using a custom kernel file.\nSkipping installation of new kernel, as bundled dtb files may be incompatible with your kernel." && SKIP_KERNEL=1
+if [[ "$SKIP_KERNEL" == "" ]]; then
+	SKIP_KERNEL=0
+	if command -v vcgencmd > /dev/null; then
+		KERNEL=$(vcgencmd get_config str | grep -E "^kernel=" | cut -d= -f2)
+		case $KERNEL in
+			"" | kernel8.img | kernel_2712.img) ;;
+			*) echo -e "You appear to be using a custom kernel file (kernel=$KERNEL in config.txt).\nSkipping installation of new kernel, as bundled dtb files may be incompatible with your kernel." && SKIP_KERNEL=1
+			sleep 1
+		esac
+	fi
 fi
 
 # Always follow redirects
