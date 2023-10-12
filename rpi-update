@@ -698,7 +698,7 @@ if [[ "${FW_REV}" == "" ]]; then
 			PULL=${ARTIFACT##*/}
 			ARTIFACT=$(eval curl -s "https://api.github.com/repos/raspberrypi/linux/pulls/${PULL}" | awk '/"sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
         else
-			ARTIFACT=$(eval curl -s "https://api.github.com/repos/raspberrypi/linux/actions/artifacts" | grep -A1 "\"head_branch\": \"${FW_REV_IN}\"" | awk '/"head_sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
+			ARTIFACT=$(eval curl -s "https://api.github.com/repos/raspberrypi/linux/actions/artifacts?per_page=100" | grep -A1 "\"head_branch\": \"${FW_REV_IN}\"" | awk '/"head_sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
 		fi
 	else
 		ARTIFACT=${FW_REV_IN}
