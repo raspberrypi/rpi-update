@@ -119,7 +119,7 @@ function update_self() {
 
 	if ! eval curl -fs ${CURL_OPTIONS} --output "${_tempFileName}" "${UPDATE_URI}"; then
 		echo " !!! Failed to download update for rpi-update!"
-		echo " !!! Make sure you have ca-certificates installed and that the time is set correctly"
+		echo " !!! Make sure you are connected to the internet, have ca-certificates installed and that the time is set correctly"
 		exit 1
 	fi
 
