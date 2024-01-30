@@ -223,18 +223,24 @@ function update_vc_libs {
 	fi
 	if [[ "${ELFOUTPUT}" != "${ELFOUTPUT/VFP_args/}" || \
 			"${ELFOUTPUT}" != "${ELFOUTPUT/hard-float/}" ]]; then
-		echo " *** Using HardFP libraries"
-		cp -R "${FW_REPOLOCAL}/vc/hardfp/"* "${ROOT_PATH}/"
+		if [ -d "${FW_REPOLOCAL}/vc/hardfp/" ]; then
+			echo " *** Using HardFP libraries"
+			cp -R "${FW_REPOLOCAL}/vc/hardfp/"* "${ROOT_PATH}/"
+		fi
 	else
-		echo " *** Using SoftFP libraries"
-		cp -R "${FW_REPOLOCAL}/vc/softfp/"* "${ROOT_PATH}/"
+		if [ -d "${FW_REPOLOCAL}/vc/softfp/" ]; then
+			echo " *** Using SoftFP libraries"
+			cp -R "${FW_REPOLOCAL}/vc/softfp/"* "${ROOT_PATH}/"
+		fi
 	fi
 }
 
 function update_sdk {
 	if [[ ${SKIP_SDK} -eq 0 ]]; then
-		echo " *** Updating SDK"
-		cp -R "${FW_REPOLOCAL}/vc/sdk/"* "${ROOT_PATH}/"
+		if [ -d "${FW_REPOLOCAL}/vc/sdk/" ]; then
+			echo " *** Updating SDK"
+			cp -R "${FW_REPOLOCAL}/vc/sdk/"* "${ROOT_PATH}/"
+		fi
 	else
 		echo " *** As requested, not updating SDK"
 	fi
