@@ -36,7 +36,6 @@ else
 	NOOBS_CHECK=${NOOBS_CHECK:-0}
 fi
 
-BRANCH=${BRANCH:-"master"}
 ROOT_PATH=${ROOT_PATH:-"/"}
 if command -v vcgencmd > /dev/null; then
 	CUR_FW_SUBDIR="/$(echo =$(vcgencmd get_config os_prefix) | cut -d'=' -f3)"
@@ -710,6 +709,11 @@ else
 	rm -f "${SELFUPDATE_SCRIPT}"
 fi
 
+if [ "${BRANCH:-"unset"}" != "unset" ]; then
+  echo 'Using the BRANCH variable is deprecated. Just use "rpi-update <branch>"'.
+  exit
+fi
+
 if [[ ! -d "${FW_PATH}" ]]; then
 	echo " !!! ${FW_PATH} doesn't exist - creating"
 	mkdir -p "${FW_PATH}"
@@ -730,14 +734,6 @@ command -v readelf >/dev/null 2>&1 || {
 	echo "     In Arch, try: pacman -S binutils"
 	exit 1
 }
-
-if [[ "${FW_REV_IN}" == "" ]]; then
-	FW_REV_IN=${BRANCH}
-fi
-
-if [[ "${BOOTLOADER_REV_IN}" == "" ]]; then
-	BOOTLOADER_REV_IN=${BRANCH}
-fi
 
 ARTIFACT=""
 BUILD=""

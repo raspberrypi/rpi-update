@@ -152,15 +152,6 @@ By default, FW_SUBDIR is initialised to the value of `os_prefix` in effect when
 the device was booted, so as to overwrite the "running" firmware. To explicitly
 install with no subdirectory (to install into /boot), use `FW_SUBDIR=/`.
 
-#### `BRANCH`
-
-By default, clones the firmware files from the master branch, else uses the files
-from the specified branch, eg:
-
-    sudo BRANCH=next rpi-update
-
-will use the 'next' branch.
-
 #### `PRUNE_MODULES`
 
 Allows you to delete unused module directories when doing an update. Set it equal to a non-zero value and it will remove all modules except the latest installed:
