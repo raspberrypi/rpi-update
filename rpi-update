@@ -735,6 +735,9 @@ command -v readelf >/dev/null 2>&1 || {
 	exit 1
 }
 
+FW_REV_IN=${FW_REV_IN:-master}
+BOOTLOADER_REV_IN=${BOOTLOADER_REV_IN:-master}
+
 ARTIFACT=""
 BUILD=""
 FW_REV=""
