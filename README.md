@@ -57,7 +57,7 @@ the new firmware.
 ## Options
 
 If you'd like to set a different GPU/ARM memory split, then define `gpu_mem` in
-`/boot/config.txt`.
+`/boot/firmware/config.txt`, or in other OSes `/boot/config.txt`.
 
 To upgrade/downgrade to a specific firmware revision, specify its Git hash
 (from the https://github.com/raspberrypi/rpi-firmware repository) as follows:
