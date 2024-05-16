@@ -711,7 +711,7 @@ fi
 
 if [ "${BRANCH:-"unset"}" != "unset" ]; then
   echo 'Using the BRANCH variable is deprecated. Just use "rpi-update <branch>"'.
-  exit
+  exit 1
 fi
 
 if [[ ! -d "${FW_PATH}" ]]; then
