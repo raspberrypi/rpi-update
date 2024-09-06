@@ -11,9 +11,11 @@ for i in $*; do
   fi
 done
 
+# REPO_URI variable is here for backwards-compatibility
 REPO_URI=${REPO_URI:-"https://github.com/raspberrypi/rpi-firmware"}
-REPO_API_URI=${REPO_URI/github.com/api.github.com\/repos}
-REPO_CONTENT_URI=${REPO_URI/github.com/raw.githubusercontent.com}
+FIRMWARE_REPO_URI=${FIRMWARE_REPO_URI:-$REPO_URI}
+FIRMWARE_REPO_API_URI=${FIRMWARE_REPO_URI/github.com/api.github.com\/repos}
+FIRMWARE_REPO_CONTENT_URI=${FIRMWARE_REPO_URI/github.com/raw.githubusercontent.com}
 
 BOOTLOADER_REPO_URI=${BOOTLOADER_REPO_URI:-"https://github.com/raspberrypi/rpi-eeprom"}
 BOOTLOADER_REPO_API_URI=${BOOTLOADER_REPO_URI/github.com/api.github.com\/repos}
@@ -344,7 +346,7 @@ function update_bootloader {
 }
 
 function show_notice {
-	local NOTICE_URI=${REPO_CONTENT_URI}/${FW_REV}/NOTICE.md
+	local NOTICE_URI=${FIRMWARE_REPO_CONTENT_URI}/${FW_REV}/NOTICE.md
 	local FULL_NOTICE=$(eval curl -fs ${CURL_OPTIONS} "${NOTICE_URI}")
 	if [ -z "${FULL_NOTICE}" ]; then
 		return
@@ -359,8 +361,8 @@ function show_notice {
 	if ${NOTICE_HASH_EXISTS}; then
 		local NOTICE=$(echo "${FULL_NOTICE}" | tail -n+2)
 		local NEW_HASH=${FW_REV}
-		local LOCAL_lt_NOTICE=$(compare_hashes "${REPO_API_URI}" "${LOCAL_HASH}" lt "${NOTICE_HASH}")
-		local NEW_ge_NOTICE=$(compare_hashes "${REPO_API_URI}" "${NEW_HASH}" ge "${NOTICE_HASH}")
+		local LOCAL_lt_NOTICE=$(compare_hashes "${FIRMWARE_REPO_API_URI}" "${LOCAL_HASH}" lt "${NOTICE_HASH}")
+		local NEW_ge_NOTICE=$(compare_hashes "${FIRMWARE_REPO_API_URI}" "${NEW_HASH}" ge "${NOTICE_HASH}")
 		if ! ${LOCAL_lt_NOTICE} && ! ${NEW_ge_NOTICE}; then
 			return
 		fi
@@ -609,7 +611,7 @@ function download_rev {
 			fi
 		done
 	elif [[ ${SKIP_DOWNLOAD} -eq 0 ]]; then
-		local FW_TARBALL_URI=${REPO_URI}/tarball/${FW_REV}
+		local FW_TARBALL_URI=${FIRMWARE_REPO_URI}/tarball/${FW_REV}
 		if ! eval curl -fs ${CURL_OPTIONS} --output /dev/null --head "${FW_TARBALL_URI}"; then
 			echo "Invalid git hash specified"
 			exit 1
@@ -747,7 +749,7 @@ ARTIFACT=""
 BUILD=""
 FW_REV=""
 if [[ ${FW_REV_IN} != http* ]] && [[ ! -f ${FW_REV_IN} ]]; then
-	FW_REV=$(get_long_hash "${REPO_API_URI}" "${FW_REV_IN}")
+	FW_REV=$(get_long_hash "${FIRMWARE_REPO_API_URI}" "${FW_REV_IN}")
 fi
 
 echo FW_REV:$FW_REV
@@ -812,7 +814,7 @@ else
 			BOOTLOADER_LOCAL_HASH=$(cat "${BOOTLOADER_REVFILE}")
 		fi
 	else
-		LOCAL_HASH=$(get_long_hash ${REPO_API_URI} "$(cat "${FW_REVFILE}")")
+		LOCAL_HASH=$(get_long_hash ${FIRMWARE_REPO_API_URI} "$(cat "${FW_REVFILE}")")
 		if [[ "${SKIP_BOOTLOADER}" -eq 0 ]]; then
 			if [[ ! -f "${BOOTLOADER_REVFILE}" ]]; then
 				BOOTLOADER_LOCAL_HASH=0
@@ -840,13 +842,13 @@ else
 	fi
 
 	if [[ ${JUST_CHECK} -ne 0 ]]; then
-		if $(compare_hashes "${REPO_API_URI}" "${LOCAL_HASH}" lt "${FW_REV}"); then
+		if $(compare_hashes "${FIRMWARE_REPO_API_URI}" "${LOCAL_HASH}" lt "${FW_REV}"); then
 			echo " *** Firmware update required. New commits available:"
-			DIFF_URI=${REPO_API_URI}/compare/${LOCAL_HASH}...${FW_REV}
+			DIFF_URI=${FIRMWARE_REPO_API_URI}/compare/${LOCAL_HASH}...${FW_REV}
 			print_diffs "${DIFF_URI}"
-		elif $(compare_hashes "${REPO_API_URI}" "${LOCAL_HASH}" gt "${FW_REV}"); then
+		elif $(compare_hashes "${FIRMWARE_REPO_API_URI}" "${LOCAL_HASH}" gt "${FW_REV}"); then
 			echo " *** Firmware downgrade requested. Commits to drop:"
-			DIFF_URI=${REPO_API_URI}/compare/${FW_REV}...${LOCAL_HASH}
+			DIFF_URI=${FIRMWARE_REPO_API_URI}/compare/${FW_REV}...${LOCAL_HASH}
 			print_diffs "${DIFF_URI}"
 		fi
 
