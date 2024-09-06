@@ -76,7 +76,6 @@ CURL_OPTIONS=${CURL_OPTIONS:-""}
 GITHUB_API_TOKEN=${GITHUB_API_TOKEN:-""}
 REDIRECTOR=${REDIRECTOR:-"https://builds.raspberrypi.com/github/linux"}
 
-FW_REPO="${REPO_URI}.git"
 FW_REPOLOCAL=${FW_REPOLOCAL:-"${WORK_PATH}/.rpi-firmware"}
 FW_PATH="${BOOT_PATH}${FW_SUBDIR}"
 FW_MODPATH="${ROOT_PATH}/lib/modules"
