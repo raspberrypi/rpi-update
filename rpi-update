@@ -19,6 +19,9 @@ BOOTLOADER_REPO_URI=${BOOTLOADER_REPO_URI:-"https://github.com/raspberrypi/rpi-e
 BOOTLOADER_REPO_API_URI=${BOOTLOADER_REPO_URI/github.com/api.github.com\/repos}
 BOOTLOADER_REPO_CONTENT_URI=${BOOTLOADER_REPO_URI/github.com/raw.githubusercontent.com}
 
+LINUX_REPO_URI=${LINUX_REPO_URI:-"https://github.com/raspberrypi/linux"}
+LINUX_REPO_API_URI=${LINUX_REPO_URI/github.com/api.github.com\/repos}
+
 UPDATE_SELF=${UPDATE_SELF:-1}
 UPDATE_REPO_URI="https://github.com/raspberrypi/rpi-update"
 UPDATE_REPO_CONTENT_URI=${UPDATE_REPO_URI/github.com/raw.githubusercontent.com}
@@ -766,9 +769,9 @@ if [[ "${FW_REV}" == "" ]]; then
 		fi
 		if [[ "${ARTIFACT}" == pulls/* ]]; then
 			PULL=${ARTIFACT##*/}
-			ARTIFACT=$(eval curl -s "https://api.github.com/repos/raspberrypi/linux/pulls/${PULL}" | awk '/"sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
+			ARTIFACT=$(eval curl -s "${LINUX_REPO_API_URI}/pulls/${PULL}" | awk '/"sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
         else
-			ARTIFACT=$(eval curl -s "https://api.github.com/repos/raspberrypi/linux/actions/artifacts?per_page=100" | grep -A1 "\"head_branch\": \"${FW_REV_IN}\"" | awk '/"head_sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
+			ARTIFACT=$(eval curl -s "${LINUX_REPO_API_URI}/actions/artifacts?per_page=100" | grep -A1 "\"head_branch\": \"${FW_REV_IN}\"" | awk '/"head_sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
 		fi
 	else
 		ARTIFACT=${FW_REV_IN}
