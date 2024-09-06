@@ -616,8 +616,8 @@ function download_rev {
 }
 
 function remove_rev {
-	echo " *** Deleting downloaded files"
 	if [[ ${SKIP_REPODELETE} -eq 0 ]]; then
+		echo " *** Deleting downloaded files"
 		rm -rf "${FW_REPOLOCAL}"
 	fi
 }
