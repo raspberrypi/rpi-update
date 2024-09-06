@@ -37,7 +37,7 @@ else
 fi
 
 ROOT_PATH=${ROOT_PATH:-"/"}
-if command -v vcgencmd > /dev/null; then
+if command -v vcgencmd > /dev/null 2>&1; then
 	CUR_FW_SUBDIR="/$(echo =$(vcgencmd get_config os_prefix) | cut -d'=' -f3)"
 else
 	CUR_FW_SUBDIR="/"
@@ -89,7 +89,7 @@ BOOTLOADER_REVFILE="${FW_PATH}/.bootloader_revision"
 
 if [[ "$SKIP_KERNEL" == "" ]]; then
 	SKIP_KERNEL=0
-	if command -v vcgencmd > /dev/null; then
+	if command -v vcgencmd > /dev/null 2>&1; then
 		KERNEL=$(vcgencmd get_config str | grep -E "^kernel=" | cut -d= -f2)
 		case $KERNEL in
 			"" | kernel8.img | kernel_2712.img) ;;
@@ -406,7 +406,7 @@ function check_partition {
 
 function check_initramfs {
 	local INITRAMFS=""
-	if command -v vcgencmd > /dev/null; then
+	if command -v vcgencmd > /dev/null 2>&1; then
 		INITRAMFS="$(echo =$(vcgencmd get_config ramfsfile) | cut -d'=' -f3)"
 	fi
 	if [ "$INITRAMFS" == "" ]; then
@@ -728,7 +728,7 @@ if [[ ${NOOBS_CHECK} -eq 1 ]] && [[ -f "${BOOT_PATH}/recovery.elf" ]]; then
 fi
 
 if [[ ${SKIP_VCLIBS} -ne 0 ]]; then
-	command -v readelf >/dev/null 2>&1 || {
+	command -v readelf > /dev/null 2>&1 || {
 		echo " !!! This tool requires you have readelf installed, please install it first"
 		echo "     In Debian, try: sudo apt-get install binutils"
 		echo "     In Arch, try: pacman -S binutils"
