@@ -74,7 +74,9 @@ JUST_CHECK=${JUST_CHECK:-0}
 RPI_REBOOT=${RPI_REBOOT:-0}
 CURL_OPTIONS=${CURL_OPTIONS:-""}
 GITHUB_API_TOKEN=${GITHUB_API_TOKEN:-""}
+# REDIRECTOR variable is here for backwards-compatibility
 REDIRECTOR=${REDIRECTOR:-"https://builds.raspberrypi.com/github/linux"}
+REDIRECTOR_URI=${REDIRECTOR_URI:-$REDIRECTOR}
 
 FW_REPO="${REPO_URI}.git"
 FW_REPOLOCAL=${FW_REPOLOCAL:-"${WORK_PATH}/.rpi-firmware"}
@@ -591,7 +593,7 @@ function download_rev {
 		mkdir -p "${FW_REPOLOCAL}"
 		for build in ${BUILD}; do
 			if [[ ${FW_REV_IN} != http* ]] && [[ ! -f ${FW_REV_IN} ]]; then
-				A="${REDIRECTOR}/${ARTIFACT}/${build}"
+				A="${REDIRECTOR_URI}/${ARTIFACT}/${build}"
 			else
 				A="${ARTIFACT}"
 			fi
