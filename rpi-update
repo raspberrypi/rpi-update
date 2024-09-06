@@ -727,12 +727,14 @@ if [[ ${NOOBS_CHECK} -eq 1 ]] && [[ -f "${BOOT_PATH}/recovery.elf" ]]; then
 	noobs_fix
 fi
 
-command -v readelf >/dev/null 2>&1 || {
-	echo " !!! This tool requires you have readelf installed, please install it first"
-	echo "     In Debian, try: sudo apt-get install binutils"
-	echo "     In Arch, try: pacman -S binutils"
-	exit 1
-}
+if [[ ${SKIP_VCLIBS} -ne 0 ]]; then
+	command -v readelf >/dev/null 2>&1 || {
+		echo " !!! This tool requires you have readelf installed, please install it first"
+		echo "     In Debian, try: sudo apt-get install binutils"
+		echo "     In Arch, try: pacman -S binutils"
+		exit 1
+	}
+fi
 
 FW_REV_IN=${FW_REV_IN:-master}
 BOOTLOADER_REV_IN=${BOOTLOADER_REV_IN:-master}
