@@ -116,7 +116,7 @@ CURL_OPTIONS_API="${CURL_OPTIONS_API:-"-A curl"}"
 # Support for custom GitHub Auth Tokens
 if [[ -n "${GITHUB_API_TOKEN}" ]]; then
 	echo " *** Using GitHub token for all requests."
-	CURL_OPTIONS="${CURL_OPTIONS} --header \"Authorization: token ${GITHUB_API_TOKEN}\""
+	CURL_OPTIONS_API="${CURL_OPTIONS_API} --header \"Authorization: token ${GITHUB_API_TOKEN}\""
 fi
 
 GITHUB_API_LIMITED=$(eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "https://api.github.com/rate_limit" | tr -d "," | awk 'BEGIN {reset=0;} { if ($1 == "\"limit\":") limit=$2; else if ($1 == "\"remaining\":") remaining=$2; else if ($1 == "\"reset\":" && limit>0 && remaining==0) reset=$2;} END { print reset }')
@@ -267,7 +267,7 @@ function download_bootloader_tools {
 
 function download_bootloader_images {
 	bcm_chip=$1
-	latest_eeprom=$(eval curl -fs ${CURL_OPTIONS} ${BOOTLOADER_REPO_API_URI}/git/trees/${BOOTLOADER_REV}?recursive=1 | grep "firmware-${bcm_chip}/latest/pieeprom" | sed 's/.*\(pieeprom.*\)".*/\1/' | sort -r | head -n1)
+	latest_eeprom=$(eval curl ${CURL_OPTIONS_API} -fs ${CURL_OPTIONS} ${BOOTLOADER_REPO_API_URI}/git/trees/${BOOTLOADER_REV}?recursive=1 | grep "firmware-${bcm_chip}/latest/pieeprom" | sed 's/.*\(pieeprom.*\)".*/\1/' | sort -r | head -n1)
 	if [[ -n "${latest_eeprom}" ]]; then
 		fw_path="/lib/firmware/raspberrypi/bootloader-${bcm_chip}/latest"
 		if [[ ! -d "${fw_path}" ]]; then
@@ -771,9 +771,9 @@ if [[ "${FW_REV}" == "" ]]; then
 		fi
 		if [[ "${ARTIFACT}" == pulls/* ]]; then
 			PULL=${ARTIFACT##*/}
-			ARTIFACT=$(eval curl -s "${LINUX_REPO_API_URI}/pulls/${PULL}" | awk '/"sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
+			ARTIFACT=$(eval curl ${CURL_OPTIONS_API} -s "${LINUX_REPO_API_URI}/pulls/${PULL}" | awk '/"sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
         else
-			ARTIFACT=$(eval curl -s "${LINUX_REPO_API_URI}/actions/artifacts?per_page=100" | grep -A1 "\"head_branch\": \"${FW_REV_IN}\"" | awk '/"head_sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
+			ARTIFACT=$(eval curl ${CURL_OPTIONS_API} -s "${LINUX_REPO_API_URI}/actions/artifacts?per_page=100" | grep -A1 "\"head_branch\": \"${FW_REV_IN}\"" | awk '/"head_sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
 		fi
 	else
 		ARTIFACT=${FW_REV_IN}
