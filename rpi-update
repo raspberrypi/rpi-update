@@ -671,8 +671,8 @@ function noobs_fix {
 }
 
 function get_hash_date {
-	local COMMITS_URI=${1}/commits/$2
-	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${COMMITS_URI}" | grep "date" | head -1 | awk -F\" '{print $4}'
+	local COMMITS_API_URI=${1}/commits/$2
+	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${COMMITS_API_URI}" | grep "date" | head -1 | awk -F\" '{print $4}'
 }
 
 function compare_hashes {
@@ -687,14 +687,14 @@ function compare_hashes {
 
 function get_long_hash {
 	# ask github for long version hash
-	local COMMITS_URI=${1}/commits/$2
-	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${COMMITS_URI}" | awk 'BEGIN {hash=""} { if (hash == "" && $1 == "\"sha\":") {hash=substr($2, 2, 40);} } END {print hash}'
+	local COMMITS_API_URI=${1}/commits/$2
+	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${COMMITS_API_URI}" | awk 'BEGIN {hash=""} { if (hash == "" && $1 == "\"sha\":") {hash=substr($2, 2, 40);} } END {print hash}'
 }
 
 function print_diffs {
-	local diff_uri="$1"
+	local DIFF_API_URI="$1"
 	SEPARATOR="======================================================"
-	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${diff_uri}" | awk -v SEPARATOR="${SEPARATOR}" -F\" ' { if ($2 == "commits") {commits=1} if (commits && $2 == "message") {print SEPARATOR "\nCommit: " $4} }' | sed 's/\\n\\n/\nCommit:\ /g'
+	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${DIFF_API_URI}" | awk -v SEPARATOR="${SEPARATOR}" -F\" ' { if ($2 == "commits") {commits=1} if (commits && $2 == "message") {print SEPARATOR "\nCommit: " $4} }' | sed 's/\\n\\n/\nCommit:\ /g'
 }
 
 
