@@ -419,17 +419,18 @@ function check_partition {
 
 function check_initramfs {
 	local INITRAMFS=""
-	if command -v vcgencmd > /dev/null; then
-		INITRAMFS="$(echo =$(vcgencmd get_config ramfsfile) | cut -d'=' -f3)"
-	fi
-	if [ "$INITRAMFS" == "" ]; then
+	if ! [[ -f "/proc/device-tree/chosen/linux,initrd-start" ]]; then
 		return
 	fi
 	if [[ ${SKIP_WARNING} -ne 0 ]]; then
 		return
 	fi
-	echo "Updating a system with initramfs configured is not supported by rpi-update"
-	echo "This could result in a system that will not boot."
+	echo ""
+	echo "Updating a system with initramfs configured is not supported by rpi-update."
+	echo "If your system relies on drivers provided by the initramfs (e.g. custom filesystem options)"
+	echo "it may not boot without regenerating the initramfs."
+	echo "If you are unsure, test if your system boots with initramfs options disabled from config.txt"
+	echo ""
 	read -p "Would you like to proceed? (y/N)" -n 1 -r -s
 	echo ""
 	if ! [[ $REPLY =~ ^[Yy]$ ]]; then
