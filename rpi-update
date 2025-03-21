@@ -785,7 +785,7 @@ if [[ "${FW_REV}" == "" ]]; then
 	SKIP_VCLIBS=1
 fi
 
-if [[ "${FW_REV}" == "" ]]; then
+if [[ "${FW_REV}" == "" ]] && [[ "$FW_REPOLOCAL" == "${WORK_PATH}/.rpi-firmware" ]]; then
 	echo " *** Invalid hash given"
 	exit 1
 fi
