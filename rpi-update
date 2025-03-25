@@ -100,7 +100,7 @@ if [[ "$SKIP_KERNEL" == "" ]]; then
 	if command -v vcgencmd > /dev/null; then
 		KERNEL=$(vcgencmd get_config str | grep -E "^kernel=" | cut -d= -f2)
 		case $KERNEL in
-			"" | kernel8.img | kernel_2712.img) ;;
+			"" | kernel8_rt.img | kernel8.img | kernel_2712.img) ;;
 			*) echo -e "You appear to be using a custom kernel file (kernel=$KERNEL in config.txt).\nSkipping installation of new kernel, as bundled dtb files may be incompatible with your kernel." && SKIP_KERNEL=1
 			sleep 1
 		esac
@@ -192,6 +192,11 @@ function update_modules {
 			fi
 			if [[ ${WANT_64BIT} -ne 1 ]]; then
 				if [[ "${VERSION}" == "v8+" ]]; then
+					continue;
+				fi
+			fi
+			if [[ ${WANT_64BIT_RT} -ne 1 ]]; then
+				if [[ "${VERSION}" == "v8-rt+" ]]; then
 					continue;
 				fi
 			fi
@@ -459,6 +464,9 @@ function update_firmware {
 		if [[ ${WANT_64BIT} -eq 1 ]]; then
 			[[ -e "${FW_REPOLOCAL}/"kernel8.img ]] && cp "${FW_REPOLOCAL}/"kernel8.img "${FW_PATH}/"
 		fi
+		if [[ ${WANT_64BIT_RT} -eq 1 ]]; then
+			[[ -e "${FW_REPOLOCAL}/"kernel8_rt.img ]] && cp "${FW_REPOLOCAL}/"kernel8_rt.img "${FW_PATH}/"
+		fi
 		if [[ ${WANT_PI5} -eq 1 ]]; then
 			[[ -e "${FW_REPOLOCAL}/"kernel_2712.img ]] && cp "${FW_REPOLOCAL}/"kernel_2712.img "${FW_PATH}/"
 			[[ -e "${FW_REPOLOCAL}/"kernel2712.img ]] && cp "${FW_REPOLOCAL}/"kernel2712.img "${FW_PATH}/"kernel_2712.img
@@ -538,6 +546,9 @@ function do_update {
 	if [ -f ${FW_PATH}/kernel8.img ]; then
 		WANT_64BIT=${WANT_64BIT:-1}
 	fi
+	if [ -f ${FW_PATH}/kernel8_rt.img ]; then
+		WANT_64BIT_RT=${WANT_64BIT_RT:-1}
+	fi
 	if [ -f ${FW_PATH}/start4.elf ] || [ -f ${BOOT_PATH}/start4.elf ]; then
 		WANT_PI4=${WANT_PI4:-1}
 	fi
@@ -546,9 +557,10 @@ function do_update {
 	fi
 	WANT_32BIT=${WANT_32BIT:-0}
 	WANT_64BIT=${WANT_64BIT:-0}
+	WANT_64BIT_RT=${WANT_64BIT_RT:-0}
 	WANT_PI4=${WANT_PI4:-0}
 	WANT_PI5=${WANT_PI5:-0}
-	echo "WANT_32BIT:${WANT_32BIT} WANT_64BIT:${WANT_64BIT} WANT_PI4:${WANT_PI4} WANT_PI5:${WANT_PI5}"
+	echo "WANT_32BIT:${WANT_32BIT} WANT_64BIT:${WANT_64BIT} WANT_64BIT_RT:${WANT_64BIT_RT} WANT_PI4:${WANT_PI4} WANT_PI5:${WANT_PI5}"
 	if [[ ${WANT_PI5} -eq 1 ]]; then
 		check_partition 512
 	elif [[ ${WANT_PI4} -eq 1 ]]; then
@@ -767,7 +779,7 @@ if [[ "${FW_REV}" == "" ]]; then
 	if [[ ${FW_REV_IN} != http* ]] && [[ ! -f ${FW_REV_IN} ]]; then
 		IFS=':' read ARTIFACT BUILD <<<${FW_REV_IN}
 		if [[ "${BUILD}" == "" ]]; then
-			BUILD="bcmrpi bcm2709 bcm2711 bcm2711_arm64 bcm2712"
+			BUILD="bcmrpi bcm2709 bcm2711 bcm2711_arm64 bcm2711_rt bcm2712"
 		fi
 		if [[ "${ARTIFACT}" == pulls/* ]]; then
 			PULL=${ARTIFACT##*/}
