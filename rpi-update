@@ -779,7 +779,7 @@ if [[ "${FW_REV}" == "" ]]; then
 	if [[ ${FW_REV_IN} != http* ]] && [[ ! -f ${FW_REV_IN} ]]; then
 		IFS=':' read ARTIFACT BUILD <<<${FW_REV_IN}
 		if [[ "${BUILD}" == "" ]]; then
-			BUILD="bcmrpi bcm2709 bcm2711 bcm2711_arm64 bcm2711_rt bcm2712"
+			BUILD="bcmrpi bcm2709 bcm2711 bcm2711_rt bcm2712"
 		fi
 		if [[ "${ARTIFACT}" == pulls/* ]]; then
 			PULL=${ARTIFACT##*/}
