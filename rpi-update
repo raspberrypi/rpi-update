@@ -42,7 +42,7 @@ else
 fi
 
 ROOT_PATH=${ROOT_PATH:-"/"}
-if command -v vcgencmd > /dev/null; then
+if command -v vcgencmd > /dev/null 2>&1; then
 	CUR_FW_SUBDIR="/$(echo =$(vcgencmd get_config os_prefix) | cut -d'=' -f3)"
 else
 	CUR_FW_SUBDIR="/"
@@ -83,7 +83,6 @@ GITHUB_API_TOKEN=${GITHUB_API_TOKEN:-""}
 REDIRECTOR=${REDIRECTOR:-"https://builds.raspberrypi.com/github/linux"}
 REDIRECTOR_URI=${REDIRECTOR_URI:-$REDIRECTOR}
 
-FW_REPO="${REPO_URI}.git"
 FW_REPOLOCAL=${FW_REPOLOCAL:-"${WORK_PATH}/.rpi-firmware"}
 FW_PATH="${BOOT_PATH}${FW_SUBDIR}"
 FW_MODPATH="${ROOT_PATH}/lib/modules"
@@ -97,7 +96,7 @@ BOOTLOADER_REVFILE="${FW_PATH}/.bootloader_revision"
 
 if [[ "$SKIP_KERNEL" == "" ]]; then
 	SKIP_KERNEL=0
-	if command -v vcgencmd > /dev/null; then
+	if command -v vcgencmd > /dev/null 2>&1; then
 		KERNEL=$(vcgencmd get_config str | grep -E "^kernel=" | cut -d= -f2)
 		case $KERNEL in
 			"" | kernel8_rt.img | kernel8.img | kernel_2712.img) ;;
@@ -419,7 +418,7 @@ function check_partition {
 
 function check_initramfs {
 	local INITRAMFS=""
-	if command -v vcgencmd > /dev/null; then
+	if command -v vcgencmd > /dev/null 2>&1; then
 		INITRAMFS="$(echo =$(vcgencmd get_config ramfsfile) | cut -d'=' -f3)"
 	fi
 	if [ "$INITRAMFS" == "" ]; then
@@ -636,8 +635,8 @@ function download_rev {
 }
 
 function remove_rev {
-	echo " *** Deleting downloaded files"
 	if [[ ${SKIP_REPODELETE} -eq 0 ]]; then
+		echo " *** Deleting downloaded files"
 		rm -rf "${FW_REPOLOCAL}"
 	fi
 }
@@ -747,12 +746,14 @@ if [[ ${NOOBS_CHECK} -eq 1 ]] && [[ -f "${BOOT_PATH}/recovery.elf" ]]; then
 	noobs_fix
 fi
 
-command -v readelf >/dev/null 2>&1 || {
-	echo " !!! This tool requires you have readelf installed, please install it first"
-	echo "     In Debian, try: sudo apt-get install binutils"
-	echo "     In Arch, try: pacman -S binutils"
-	exit 1
-}
+if [[ ${SKIP_VCLIBS} -ne 0 ]]; then
+	command -v readelf > /dev/null 2>&1 || {
+		echo " !!! This tool requires you have readelf installed, please install it first"
+		echo "     In Debian, try: sudo apt-get install binutils"
+		echo "     In Arch, try: pacman -S binutils"
+		exit 1
+	}
+fi
 
 FW_REV_IN=${FW_REV_IN:-master}
 BOOTLOADER_REV_IN=${BOOTLOADER_REV_IN:-master}
