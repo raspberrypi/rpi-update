@@ -421,14 +421,15 @@ function check_initramfs {
 	local INITRAMFS=""
 	if command -v vcgencmd > /dev/null; then
 		INITRAMFS="$(echo =$(vcgencmd get_config ramfsfile) | cut -d'=' -f3)"
+		AUTO_INITRAMFS="0$(echo =$(vcgencmd get_config auto_initramfs) | cut -d'=' -f3)"
 	fi
-	if [ "$INITRAMFS" == "" ]; then
+	if [ "$INITRAMFS" == "" -a $AUTO_INITRAMFS -eq 0 ]; then
 		return
 	fi
 	if [[ ${SKIP_WARNING} -ne 0 ]]; then
 		return
 	fi
-	echo "Updating a system with initramfs configured is not supported by rpi-update"
+	echo "Updating a system with initramfs configured is not supported by rpi-update."
 	echo "This could result in a system that will not boot."
 	read -p "Would you like to proceed? (y/N)" -n 1 -r -s
 	echo ""
