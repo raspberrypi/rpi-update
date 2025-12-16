@@ -182,6 +182,12 @@ To reboot after successfully update, run:
 
 You can use it to automate updates.
 
+## Caveats
+
+1. Only use `rpi-update` if you are happy to lose the data on your filesystem. Catastrophic failures are extremely rare, but still possible.
+2. Back up important data before updating (or take responsibility for not doing so).
+3. Updating an image that requires initramfs in order to boot is not supported. If your system relies on drivers provided by the initramfs (e.g. custom filesystem options or USB network drivers), it is likely to not boot without regenerating the initramfs - a step that `rpi-update` _will not do_. If you are unsure, test if your system boots with the initramfs options (`auto_initramfs`, `initramfs`, `ramfsfile`) commented out in `config.txt`.
+
 ## Troubleshooting
 
 There are two possible problems related to SSL certificates that may prevent
