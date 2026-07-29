@@ -599,8 +599,37 @@ function do_update {
 	fi
 }
 
+# Work out which of the github builds are needed for the kernels being
+# installed. Downloading builds that aren't wanted is a waste of time, and
+# will fail once the artifacts for that build have expired.
+function default_builds {
+	local builds=""
+	if [[ ${WANT_32BIT} -eq 1 ]]; then
+		builds="${builds} bcmrpi bcm2709"
+	fi
+	if [[ ${WANT_64BIT} -eq 1 ]]; then
+		builds="${builds} bcm2711"
+	fi
+	if [[ ${WANT_64BIT_RT} -eq 1 ]]; then
+		builds="${builds} bcm2711_rt"
+	fi
+	if [[ ${WANT_PI5} -eq 1 ]]; then
+		builds="${builds} bcm2712"
+	fi
+	if [[ "${builds}" == "" ]]; then
+		# Not expected (no kernel.img, kernel7.img, kernel7l.img, kernel8.img, kernel8_rt.img, kernel_2712.img were detected)
+		# default to the more common kernels
+		builds="bcmrpi bcm2709 bcm2711 bcm2712"
+	fi
+	echo ${builds}
+}
+
 function download_rev {
 	if [[ "${ARTIFACT}" != "" ]]; then
+		if [[ "${BUILD}" == "" ]]; then
+			BUILD=$(default_builds)
+		fi
+		echo " *** Using builds: ${BUILD}"
 		if [[ -f ${FW_REV_IN} ]]; then
 			GET="cat"
 		else
@@ -779,9 +808,8 @@ fi
 if [[ "${FW_REV}" == "" ]]; then
 	if [[ ${FW_REV_IN} != http* ]] && [[ ! -f ${FW_REV_IN} ]]; then
 		IFS=':' read ARTIFACT BUILD <<<${FW_REV_IN}
-		if [[ "${BUILD}" == "" ]]; then
-			BUILD="bcmrpi bcm2709 bcm2711 bcm2711_rt bcm2712"
-		fi
+		# If no build was given, the set of builds to download is chosen in
+		# download_rev, once the kernels that are wanted are known
 		if [[ "${ARTIFACT}" == pulls/* ]]; then
 			PULL=${ARTIFACT##*/}
 			ARTIFACT=$(eval curl ${CURL_OPTIONS_API} -s "${LINUX_REPO_API_URI}/pulls/${PULL}" | awk '/"sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
