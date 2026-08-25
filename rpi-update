@@ -112,17 +112,38 @@ CURL_OPTIONS="${CURL_OPTIONS} -L"
 
 # api.github.com requires a User-Agent header
 CURL_OPTIONS_API="${CURL_OPTIONS_API:-"-A curl"}"
+GITHUB_API_AUTH=()
 
 # Support for custom GitHub Auth Tokens
 if [[ -n "${GITHUB_API_TOKEN}" ]]; then
 	echo " *** Using GitHub token for all requests."
-	CURL_OPTIONS_API="${CURL_OPTIONS_API} --header \"Authorization: token ${GITHUB_API_TOKEN}\""
+	GITHUB_API_AUTH=(--header "Authorization: token ${GITHUB_API_TOKEN}")
 fi
+
+function github_api_get_with_status {
+	local API_URI=$1
+	local WRITE_OUT=$'\n%{http_code}'
+	shift
+	eval "curl ${CURL_OPTIONS_API} -sS ${CURL_OPTIONS} \
+		\${GITHUB_API_AUTH[@]+\"\${GITHUB_API_AUTH[@]}\"} --write-out \"\$WRITE_OUT\" \
+		\"\$@\" \"\$API_URI\""
+}
 
 function github_api_get {
 	local API_URI=$1
+	local RESULT
+	local RESPONSE
+	local STATUS
 	shift
-	eval "curl ${CURL_OPTIONS_API} -fsS ${CURL_OPTIONS} \"\$@\" \"\$API_URI\""
+	RESULT=$(github_api_get_with_status "${API_URI}" "$@") || return
+	STATUS=${RESULT##*$'\n'}
+	RESPONSE=${RESULT%$'\n'*}
+	if [[ ${STATUS} == 2[0-9][0-9] ]]; then
+		printf '%s' "${RESPONSE}"
+		return
+	fi
+	echo "Github API request failed with HTTP ${STATUS}: ${API_URI}" >&2
+	return 22
 }
 
 function extract_json_number {
@@ -315,10 +336,11 @@ function download_bootloader_tools {
 function get_latest_eeprom {
 	local bcm_chip=$1
 	local BOOTLOADER_IMAGES_API_URI="${BOOTLOADER_REPO_API_URI}/contents/firmware-${bcm_chip}/latest"
+	local RESPONSE
 
-	eval "curl ${CURL_OPTIONS_API} -fs ${CURL_OPTIONS} --get \
-		--data-urlencode \"ref=\$BOOTLOADER_REV\" \
-		\"\$BOOTLOADER_IMAGES_API_URI\"" | \
+	RESPONSE=$(github_api_get "${BOOTLOADER_IMAGES_API_URI}" --get \
+		--data-urlencode "ref=${BOOTLOADER_REV}") || return
+	printf '%s' "${RESPONSE}" | \
 		grep -o '"name"[[:space:]]*:[[:space:]]*"pieeprom-[0-9-]*\.bin"' | cut -d\" -f4 | sort -r | head -1
 }
 
@@ -765,7 +787,9 @@ function noobs_fix {
 
 function get_hash_date {
 	local COMMITS_API_URI=${1}/commits/$2
-	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${COMMITS_API_URI}" | extract_json_strings date | head -1
+	local RESPONSE
+	RESPONSE=$(github_api_get "${COMMITS_API_URI}") || return
+	printf '%s' "${RESPONSE}" | extract_json_strings date | head -1
 }
 
 function compare_hashes {
@@ -805,27 +829,49 @@ function extract_json_strings {
 function get_long_hash {
 	# ask github for long version hash
 	local COMMITS_API_URI=${1}/commits/$2
-	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${COMMITS_API_URI}" | extract_json_hash sha
+	local RESULT
+	local RESPONSE
+	local STATUS
+	# A missing firmware ref is expected when selecting a kernel build.
+	RESULT=$(github_api_get_with_status "${COMMITS_API_URI}") || return
+	STATUS=${RESULT##*$'\n'}
+	RESPONSE=${RESULT%$'\n'*}
+	if [[ ${STATUS} == 404 || ${STATUS} == 422 ]]; then
+		return 0
+	fi
+	if [[ ${STATUS} != 2[0-9][0-9] ]]; then
+		echo "Github API request failed with HTTP ${STATUS}: ${COMMITS_API_URI}" >&2
+		return 22
+	fi
+	printf '%s' "${RESPONSE}" | extract_json_hash sha
 }
 
 function get_workflow_head_sha {
 	local BRANCH=$1
 	local WORKFLOW_RUNS_API_URI="${LINUX_REPO_API_URI}/actions/workflows/kernel-build.yml/runs"
+	local RESPONSE
 
-	# Keep BRANCH as a quoted variable while eval expands the legacy curl option
-	# strings. This prevents branch contents from being parsed as shell syntax.
-	eval "curl ${CURL_OPTIONS_API} -s --get \
-		--data-urlencode \"branch=\$BRANCH\" \
-		--data-urlencode \"status=success\" \
-		--data-urlencode \"per_page=1\" \
-		\"\$WORKFLOW_RUNS_API_URI\"" | \
-		extract_json_hash head_sha
+	RESPONSE=$(github_api_get "${WORKFLOW_RUNS_API_URI}" --get \
+		--data-urlencode "branch=${BRANCH}" \
+		--data-urlencode "status=success" \
+		--data-urlencode "per_page=1") || return
+	printf '%s' "${RESPONSE}" | extract_json_hash head_sha
+}
+
+function get_pull_head_sha {
+	local PULL=$1
+	local PULL_API_URI="${LINUX_REPO_API_URI}/pulls/${PULL}"
+	local RESPONSE
+	RESPONSE=$(github_api_get "${PULL_API_URI}") || return
+	printf '%s' "${RESPONSE}" | extract_json_hash sha
 }
 
 function print_diffs {
 	local DIFF_API_URI="$1"
+	local RESPONSE
 	SEPARATOR="======================================================"
-	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${DIFF_API_URI}" | \
+	RESPONSE=$(github_api_get "${DIFF_API_URI}") || return
+	printf '%s' "${RESPONSE}" | \
 		tr -d '\n' | sed -E 's/^.*"commits"[[:space:]]*:[[:space:]]*\[//' | \
 		extract_json_strings message | \
 		while IFS= read -r MESSAGE; do
@@ -906,7 +952,7 @@ if [[ "${FW_REV}" == "" ]]; then
 		# download_rev, once the kernels that are wanted are known
 		if [[ "${ARTIFACT}" == pulls/* ]]; then
 			PULL=${ARTIFACT##*/}
-			ARTIFACT=$(eval curl ${CURL_OPTIONS_API} -s "${LINUX_REPO_API_URI}/pulls/${PULL}" | extract_json_hash sha)
+			ARTIFACT=$(get_pull_head_sha "${PULL}")
 		else
 			ARTIFACT=$(get_workflow_head_sha "${ARTIFACT}")
 		fi
