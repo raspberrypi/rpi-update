@@ -270,9 +270,19 @@ function download_bootloader_tools {
 	done
 }
 
+function get_latest_eeprom {
+	local bcm_chip=$1
+	local BOOTLOADER_IMAGES_API_URI="${BOOTLOADER_REPO_API_URI}/contents/firmware-${bcm_chip}/latest"
+
+	eval "curl ${CURL_OPTIONS_API} -fs ${CURL_OPTIONS} --get \
+		--data-urlencode \"ref=\$BOOTLOADER_REV\" \
+		\"\$BOOTLOADER_IMAGES_API_URI\"" | \
+		grep -o '"name"[[:space:]]*:[[:space:]]*"pieeprom-[0-9-]*\.bin"' | cut -d\" -f4 | sort -r | head -1
+}
+
 function download_bootloader_images {
 	bcm_chip=$1
-	latest_eeprom=$(eval curl ${CURL_OPTIONS_API} -fs ${CURL_OPTIONS} ${BOOTLOADER_REPO_API_URI}/git/trees/${BOOTLOADER_REV}?recursive=1 | grep "firmware-${bcm_chip}/latest/pieeprom" | sed 's/.*\(pieeprom.*\)".*/\1/' | sort -r | head -n1)
+	latest_eeprom=$(get_latest_eeprom "${bcm_chip}")
 	if [[ -n "${latest_eeprom}" ]]; then
 		fw_path="/lib/firmware/raspberrypi/bootloader-${bcm_chip}/latest"
 		if [[ ! -d "${fw_path}" ]]; then
