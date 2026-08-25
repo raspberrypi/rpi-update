@@ -376,9 +376,8 @@ function show_notice {
 	if ${NOTICE_HASH_EXISTS}; then
 		local NOTICE=$(echo "${FULL_NOTICE}" | tail -n+2)
 		local NEW_HASH=${FW_REV}
-		local LOCAL_lt_NOTICE=$(compare_hashes "${FIRMWARE_REPO_API_URI}" "${LOCAL_HASH}" lt "${NOTICE_HASH}")
-		local NEW_ge_NOTICE=$(compare_hashes "${FIRMWARE_REPO_API_URI}" "${NEW_HASH}" ge "${NOTICE_HASH}")
-		if ! ${LOCAL_lt_NOTICE} && ! ${NEW_ge_NOTICE}; then
+		if ! compare_hashes "${FIRMWARE_REPO_API_URI}" "${LOCAL_HASH}" lt "${NOTICE_HASH}" && \
+			! compare_hashes "${FIRMWARE_REPO_API_URI}" "${NEW_HASH}" ge "${NOTICE_HASH}"; then
 			return
 		fi
 	else
@@ -724,22 +723,41 @@ function noobs_fix {
 
 function get_hash_date {
 	local COMMITS_API_URI=${1}/commits/$2
-	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${COMMITS_API_URI}" | grep "date" | head -1 | awk -F\" '{print $4}'
+	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${COMMITS_API_URI}" | extract_json_strings date | head -1
 }
 
 function compare_hashes {
-	local DATE1=$(get_hash_date "${1}" "$2")
-	local DATE2=$(get_hash_date "${1}" "$4")
-	if [ $(date -d "${DATE1}" +%s) -$3 $(date -d "${DATE2}" +%s) ]; then
-		echo true
-	else
-		echo false
-	fi
+	local D1
+	local D2
+	local DATE1
+	local DATE2
+	D1=$(get_hash_date "${1}" "$2") && [[ -n "${D1}" ]] || return 1
+	D2=$(get_hash_date "${1}" "$4") && [[ -n "${D2}" ]] || return 1
+	DATE1=$(date -d "${D1}" +%s 2>/dev/null) || return 1
+	DATE2=$(date -d "${D2}" +%s 2>/dev/null) || return 1
+
+	local RESULT
+	case $3 in
+		lt) RESULT=$((DATE1 < DATE2)) ;;
+		le) RESULT=$((DATE1 <= DATE2)) ;;
+		eq) RESULT=$((DATE1 == DATE2)) ;;
+		ne) RESULT=$((DATE1 != DATE2)) ;;
+		ge) RESULT=$((DATE1 >= DATE2)) ;;
+		gt) RESULT=$((DATE1 > DATE2)) ;;
+		*) echo "Invalid hash comparison operator: $3" >&2; return 1 ;;
+	esac
+	[[ ${RESULT} -eq 1 ]]
 }
 
 function extract_json_hash {
 	local KEY=$1
 	grep -o "\"${KEY}\"[[:space:]]*:[[:space:]]*\"[0-9a-f]\\{40\\}\"" | head -1 | cut -d\" -f4
+}
+
+function extract_json_strings {
+	local KEY=$1
+	grep -oE "\"${KEY}\"[[:space:]]*:[[:space:]]*\"([^\"\\\\]|\\\\.)*\"" | \
+		sed -E "s/^\"${KEY}\"[[:space:]]*:[[:space:]]*\"//; s/\"$//"
 }
 
 function get_long_hash {
@@ -765,7 +783,12 @@ function get_workflow_head_sha {
 function print_diffs {
 	local DIFF_API_URI="$1"
 	SEPARATOR="======================================================"
-	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${DIFF_API_URI}" | awk -v SEPARATOR="${SEPARATOR}" -F\" ' { if ($2 == "commits") {commits=1} if (commits && $2 == "message") {print SEPARATOR "\nCommit: " $4} }' | sed 's/\\n\\n/\nCommit:\ /g'
+	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${DIFF_API_URI}" | \
+		tr -d '\n' | sed -E 's/^.*"commits"[[:space:]]*:[[:space:]]*\[//' | \
+		extract_json_strings message | \
+		while IFS= read -r MESSAGE; do
+			printf '%s\nCommit: %s\n' "${SEPARATOR}" "${MESSAGE}"
+		done | sed 's/\\n\\n/\nCommit:\ /g'
 }
 
 
@@ -912,22 +935,22 @@ else
 	fi
 
 	if [[ ${JUST_CHECK} -ne 0 ]]; then
-		if $(compare_hashes "${FIRMWARE_REPO_API_URI}" "${LOCAL_HASH}" lt "${FW_REV}"); then
+		if compare_hashes "${FIRMWARE_REPO_API_URI}" "${LOCAL_HASH}" lt "${FW_REV}"; then
 			echo " *** Firmware update required. New commits available:"
 			DIFF_URI=${FIRMWARE_REPO_API_URI}/compare/${LOCAL_HASH}...${FW_REV}
 			print_diffs "${DIFF_URI}"
-		elif $(compare_hashes "${FIRMWARE_REPO_API_URI}" "${LOCAL_HASH}" gt "${FW_REV}"); then
+		elif compare_hashes "${FIRMWARE_REPO_API_URI}" "${LOCAL_HASH}" gt "${FW_REV}"; then
 			echo " *** Firmware downgrade requested. Commits to drop:"
 			DIFF_URI=${FIRMWARE_REPO_API_URI}/compare/${FW_REV}...${LOCAL_HASH}
 			print_diffs "${DIFF_URI}"
 		fi
 
 		if [[ ${SKIP_BOOTLOADER} -eq 0 ]]; then
-			if $(compare_hashes "${BOOTLOADER_REPO_API_URI}" "${BOOTLOADER_LOCAL_HASH}" lt "${BOOTLOADER_REV}"); then
+			if compare_hashes "${BOOTLOADER_REPO_API_URI}" "${BOOTLOADER_LOCAL_HASH}" lt "${BOOTLOADER_REV}"; then
 				echo " *** Bootloader update required. New commits available:"
 				DIFF_URI=${BOOTLOADER_REPO_API_URI}/compare/${BOOTLOADER_LOCAL_HASH}...${BOOTLOADER_REV}
 				print_diffs "${DIFF_URI}"
-			elif $(compare_hashes "${BOOTLOADER_REPO_API_URI}" "${BOOTLOADER_LOCAL_HASH}" gt "${BOOTLOADER_REV}"); then
+			elif compare_hashes "${BOOTLOADER_REPO_API_URI}" "${BOOTLOADER_LOCAL_HASH}" gt "${BOOTLOADER_REV}"; then
 				echo " *** Bootloader downgrade requested. Commits to drop:"
 				DIFF_URI=${BOOTLOADER_REPO_API_URI}/compare/${BOOTLOADER_REV}...${BOOTLOADER_LOCAL_HASH}
 				print_diffs "${DIFF_URI}"
