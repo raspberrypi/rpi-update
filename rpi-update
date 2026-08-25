@@ -727,10 +727,29 @@ function compare_hashes {
 	fi
 }
 
+function extract_json_hash {
+	local KEY=$1
+	grep -o "\"${KEY}\"[[:space:]]*:[[:space:]]*\"[0-9a-f]\\{40\\}\"" | head -1 | cut -d\" -f4
+}
+
 function get_long_hash {
 	# ask github for long version hash
 	local COMMITS_API_URI=${1}/commits/$2
-	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${COMMITS_API_URI}" | awk 'BEGIN {hash=""} { if (hash == "" && $1 == "\"sha\":") {hash=substr($2, 2, 40);} } END {print hash}'
+	eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "${COMMITS_API_URI}" | extract_json_hash sha
+}
+
+function get_workflow_head_sha {
+	local BRANCH=$1
+	local WORKFLOW_RUNS_API_URI="${LINUX_REPO_API_URI}/actions/workflows/kernel-build.yml/runs"
+
+	# Keep BRANCH as a quoted variable while eval expands the legacy curl option
+	# strings. This prevents branch contents from being parsed as shell syntax.
+	eval "curl ${CURL_OPTIONS_API} -s --get \
+		--data-urlencode \"branch=\$BRANCH\" \
+		--data-urlencode \"status=success\" \
+		--data-urlencode \"per_page=1\" \
+		\"\$WORKFLOW_RUNS_API_URI\"" | \
+		extract_json_hash head_sha
 }
 
 function print_diffs {
@@ -812,9 +831,9 @@ if [[ "${FW_REV}" == "" ]]; then
 		# download_rev, once the kernels that are wanted are known
 		if [[ "${ARTIFACT}" == pulls/* ]]; then
 			PULL=${ARTIFACT##*/}
-			ARTIFACT=$(eval curl ${CURL_OPTIONS_API} -s "${LINUX_REPO_API_URI}/pulls/${PULL}" | awk '/"sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
-        else
-			ARTIFACT=$(eval curl ${CURL_OPTIONS_API} -s "${LINUX_REPO_API_URI}/actions/artifacts?per_page=100" | grep -A1 "\"head_branch\": \"${FW_REV_IN}\"" | awk '/"head_sha":/ {gsub(/"/, "", $2); gsub(/,/, "", $2); print $2; exit}')
+			ARTIFACT=$(eval curl ${CURL_OPTIONS_API} -s "${LINUX_REPO_API_URI}/pulls/${PULL}" | extract_json_hash sha)
+		else
+			ARTIFACT=$(get_workflow_head_sha "${ARTIFACT}")
 		fi
 	else
 		ARTIFACT=${FW_REV_IN}
