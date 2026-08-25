@@ -119,8 +119,50 @@ if [[ -n "${GITHUB_API_TOKEN}" ]]; then
 	CURL_OPTIONS_API="${CURL_OPTIONS_API} --header \"Authorization: token ${GITHUB_API_TOKEN}\""
 fi
 
-GITHUB_API_LIMITED=$(eval curl ${CURL_OPTIONS_API} -s ${CURL_OPTIONS} "https://api.github.com/rate_limit" | tr -d "," | awk 'BEGIN {reset=0;} { if ($1 == "\"limit\":") limit=$2; else if ($1 == "\"remaining\":") remaining=$2; else if ($1 == "\"reset\":" && limit>0 && remaining==0) reset=$2;} END { print reset }')
-if [ ${GITHUB_API_LIMITED} -gt 0 ]; then
+function github_api_get {
+	local API_URI=$1
+	shift
+	eval "curl ${CURL_OPTIONS_API} -fsS ${CURL_OPTIONS} \"\$@\" \"\$API_URI\""
+}
+
+function extract_json_number {
+	local KEY=$1
+	grep -oE "\"${KEY}\"[[:space:]]*:[[:space:]]*[0-9]+" | head -1 | sed -E 's/.*:[[:space:]]*//'
+}
+
+function get_rate_limit_reset {
+	local RESPONSE
+	local RATE_JSON
+	local LIMIT
+	local REMAINING
+	local RESET
+	local RESOURCE
+	RESPONSE=$(tr -d '\n')
+
+	# Prefer resources.core; the top-level rate object is deprecated by Github.
+	for RESOURCE in core rate; do
+		RATE_JSON=$(printf '%s' "${RESPONSE}" | \
+			grep -oE "\"${RESOURCE}\"[[:space:]]*:[[:space:]]*\{[^}]*\}" | head -1) || true
+		LIMIT=$(printf '%s' "${RATE_JSON}" | extract_json_number limit)
+		REMAINING=$(printf '%s' "${RATE_JSON}" | extract_json_number remaining)
+		RESET=$(printf '%s' "${RATE_JSON}" | extract_json_number reset)
+		if [[ ${LIMIT} =~ ^[0-9]+$ && ${REMAINING} =~ ^[0-9]+$ && ${RESET} =~ ^[0-9]+$ ]]; then
+			if [[ ${LIMIT} -gt 0 && ${REMAINING} -eq 0 ]]; then
+				echo "${RESET}"
+			else
+				echo 0
+			fi
+			return
+		fi
+	done
+	return 1
+}
+
+if ! GITHUB_API_RATE=$(github_api_get "https://api.github.com/rate_limit"); then
+	echo " *** Unable to query the Github API rate limit; continuing without a rate-limit check"
+elif ! GITHUB_API_LIMITED=$(printf '%s' "${GITHUB_API_RATE}" | get_rate_limit_reset); then
+	echo " *** Github API returned an unexpected rate-limit response; continuing without a rate-limit check"
+elif [[ ${GITHUB_API_LIMITED} -gt 0 ]]; then
 	echo " *** Github API is currently rate limited - please try again after $(date --date @${GITHUB_API_LIMITED})"
 	exit 1
 fi
