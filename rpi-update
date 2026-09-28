@@ -848,7 +848,10 @@ function get_long_hash {
 
 function get_workflow_head_sha {
 	local BRANCH=$1
-	local WORKFLOW_RUNS_API_URI="${LINUX_REPO_API_URI}/actions/workflows/kernel-build.yml/runs"
+	local HEAD_SHA
+	# Pin known branches to their current commit; PR branches may only exist in a fork.
+	HEAD_SHA=$(get_long_hash "${LINUX_REPO_API_URI}" "${BRANCH}") || return
+	local WORKFLOW_RUNS_API_URI="${LINUX_REPO_API_URI}/actions/workflows/kernel-build.yml/runs${HEAD_SHA:+?head_sha=${HEAD_SHA}}"
 	local RESPONSE
 
 	RESPONSE=$(github_api_get "${WORKFLOW_RUNS_API_URI}" --get \
